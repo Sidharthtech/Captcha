@@ -54,7 +54,7 @@
             transition: color 0.3s ease, text-shadow 0.3s ease;
         }
 
-        .captcha-bar, .captcha-box {
+        .captcha-bar {
             display: block;
             width: 40px;
             height: 40px;
@@ -95,7 +95,6 @@
             color: #00ff00;
             text-shadow: 0 0 8px #00ff00;
         }
-
     </style>
 </head>
 
@@ -164,30 +163,31 @@
             const status = document.getElementById('status');
             const container = document.getElementById('captchaContainer');
 
-            if (lastClickPosition.x !== null && lastClickPosition.y !== null) {
-                const currentPosition = lastMovement;
-                if (currentPosition.x === lastClickPosition.x && currentPosition.y === lastClickPosition.y) {
-                    status.textContent = '❌ Bot detected (no movement)';
-                    return;
-                }
-            }
-
-            if (isLinearMovement()) {
-                status.textContent = '❌ Bot detected (linear movement)';
-                return;
-            }
-
-            if (Date.now() - lastMouseMoveTime > 2000) {
+            if (isLinearMovement() || Date.now() - lastMouseMoveTime > 2000) {
                 status.textContent = '❌ Bot detected';
                 return;
             }
 
-            box.classList.toggle('checked');
-            container.classList.toggle('checked');
+            try {
+                const response = await fetch('https://captcha-yq5v.onrender.com', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ movements: mouseMovements })
+                });
 
-            status.textContent = box.classList.contains('checked') ? '✅ Verified!' : '❌ Not verified';
+                const data = await response.json();
 
-            lastClickPosition = { x: lastMovement.x, y: lastMovement.y };
+                if (data.verified) {
+                    box.classList.add('checked');
+                    container.classList.add('checked');
+                    status.textContent = '✅ Verified!';
+                } else {
+                    status.textContent = '❌ Bot detected!';
+                }
+            } catch (error) {
+                status.textContent = '❌ Error verifying.';
+                console.error('Error:', error);
+            }
         }
     </script>
 </body>
