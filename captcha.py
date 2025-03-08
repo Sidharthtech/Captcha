@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
+import os
 
 app = Flask(__name__)
 CORS(app)  # Allow requests from any origin (for Live Server compatibility)
@@ -39,8 +40,8 @@ def analyze_movements(movements):
     avg_time = np.mean(time_intervals)
     accel_variability = np.std(accelerations) if accelerations else 0
 
-    print(f"👉 Avg Distance: {avg_distance}, Std Distance: {std_distance}")
-    print(f"👉 Avg Time: {avg_time}, Accel Variability: {accel_variability}")
+    print(f"👉 Avg Distance: {avg_distance:.4f}, Std Distance: {std_distance:.4f}")
+    print(f"👉 Avg Time: {avg_time:.4f}, Accel Variability: {accel_variability:.4f}")
 
     # Heuristic: Bots often show low variability in movement and timing
     if avg_distance < 1 or std_distance < 0.5 or avg_time < 5:
@@ -73,5 +74,6 @@ def verify():
         return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
-    print("🚀 Starting CAPTCHA verification server...")
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))  # Use PORT from environment or default to 5000
+    print("🚀 Starting CAPTCHA verification server on port:", port)
+    app.run(host='0.0.0.0', port=port, debug=True)
