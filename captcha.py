@@ -1,58 +1,60 @@
-from flask import Flask, request, jsonify, redirect, session
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
 import os
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
+CORS(app)  # Allow requests from any origin (for Live Server compatibility)
 
-# Allow requests from both frontend URLs
-CORS(app, resources={r"/*": {"origins": ["https://captcha-verification-beta.vercel.app", "https://portfolio-website-jet-delta-49.vercel.app"]}})
-
-# Default redirect URL
-DEFAULT_REDIRECT_URL = "https://portfolio-website-jet-delta-49.vercel.app"
-
-# Mouse movement analysis function
+# Function to analyze mouse movements and detect "bot-like" patterns
 def analyze_movements(movements):
     if len(movements) < 10:
         print("❌ Not enough data to analyze.")
-        return False
+        return False  # Not enough data for analysis
 
-    distances, time_intervals, accelerations = [], [], []
+    # Calculate distances, time intervals, and acceleration
+    distances = []
+    time_intervals = []
+    accelerations = []
 
     for i in range(1, len(movements)):
         dx = movements[i]['x'] - movements[i - 1]['x']
         dy = movements[i]['y'] - movements[i - 1]['y']
         distance = np.sqrt(dx**2 + dy**2)
+
         time_diff = movements[i]['time'] - movements[i - 1]['time']
-        if time_diff <= 0:
-            continue
 
         distances.append(distance)
         time_intervals.append(time_diff)
 
-        if i > 1:
-            prev_speed = distances[i - 2] / time_intervals[i - 2] if time_intervals[i - 2] > 0 else 0
+        # Calculate acceleration (rate of change in speed)
+        if i > 1 and time_diff > 0:
+            prev_speed = distances[i - 2] / time_intervals[i - 2]
             current_speed = distance / time_diff
             acceleration = abs(current_speed - prev_speed) / time_diff
             accelerations.append(acceleration)
 
-    avg_distance = np.mean(distances) if distances else 0
-    std_distance = np.std(distances) if distances else 0
-    avg_time = np.mean(time_intervals) if time_intervals else 0
+    # Statistical checks to identify "bot-like" behavior
+    avg_distance = np.mean(distances)
+    std_distance = np.std(distances)
+    avg_time = np.mean(time_intervals)
     accel_variability = np.std(accelerations) if accelerations else 0
 
-    # Heuristic detection logic
+    print(f"👉 Avg Distance: {avg_distance:.4f}, Std Distance: {std_distance:.4f}")
+    print(f"👉 Avg Time: {avg_time:.4f}, Accel Variability: {accel_variability:.4f}")
+
+    # Heuristic: Bots often show low variability in movement and timing
     if avg_distance < 1 or std_distance < 0.5 or avg_time < 5:
         print("🚨 Bot detected: Uniform movement.")
-        return False
+        return False  # Likely a bot
 
+    # Low acceleration variability suggests automated input
     if accel_variability < 0.01:
         print("🚨 Bot detected: Low acceleration variability.")
         return False
 
-    print("✅ Human verified.")
-    return True
+    print("✅ Human detected.")
+    return True  # Likely a human
 
 @app.route('/verify', methods=['POST'])
 def verify():
@@ -63,29 +65,15 @@ def verify():
         if not movements:
             return jsonify({"error": "No movement data provided"}), 400
 
-        print(f"🔍 Received {len(movements)} movement data points for verification.")
-
         is_human = analyze_movements(movements)
 
-        if is_human:
-            session['verified'] = True
-            redirect_url = data.get('redirect', DEFAULT_REDIRECT_URL)
-            return jsonify({"verified": True, "redirect": redirect_url})
-        else:
-            return jsonify({"verified": False})
+        return jsonify({"verified": is_human})
 
     except Exception as e:
         print(f"❌ Error processing request: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
-@app.route('/redirect')
-def handle_redirect():
-    if session.get('verified'):
-        session.pop('verified', None)  # Clear session
-        return redirect(DEFAULT_REDIRECT_URL + "?verified=true")  # Redirect with verification flag
-    return "❌ Verification required.", 403
-
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  
-    print(f"🚀 CAPTCHA server running on port {port}...")
+    port = int(os.environ.get('PORT', 5000))  # Use PORT from environment or default to 5000
+    print("🚀 Starting CAPTCHA verification server on port:", port)
     app.run(host='0.0.0.0', port=port, debug=True)
