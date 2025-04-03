@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -98,8 +97,8 @@
         }
     </style>
 </head>
-
 <body>
+
     <div class="captcha-container" id="captchaContainer">
         <div class="captcha-header">
             <div class="captcha-logo">
@@ -175,17 +174,21 @@
             }
 
             try {
+                console.log("🔄 Sending POST request to backend...");
+                
                 const response = await fetch('https://captcha-d6p5.onrender.com/verify', {
-                    method: 'POST',
+                    method: 'POST',  // 🔥 Fixed: Ensure POST method
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ movements: mouseMovements })
                 });
 
                 if (!response.ok) {
+                    console.error("⚠️ Server response:", response.status, response.statusText);
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
 
                 const data = await response.json();
+                console.log("✅ Server response:", data);
 
                 if (data.verified) {
                     box.classList.add('checked');
@@ -195,11 +198,11 @@
                     status.textContent = '❌ Bot detected!';
                 }
             } catch (error) {
-                console.error('Verification failed:', error);
+                console.error("❌ Verification failed:", error);
                 status.textContent = '❌ Error verifying (Server issue).';
             }
         }
     </script>
-</body>
 
+</body>
 </html>
