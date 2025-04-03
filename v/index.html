@@ -122,6 +122,7 @@
         let mouseMovements = [];
         let lastMovement = null;
         let lastMouseMoveTime = null;
+        let canClick = true;  // Controls when the user can click again
 
         // Track mouse movements
         document.addEventListener('mousemove', (event) => {
@@ -163,13 +164,20 @@
 
         // Simple CAPTCHA verification without backend
         function verifyCaptcha() {
+            if (!canClick) return;  // Prevent clicking during wait period
+
             const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
             const container = document.getElementById('captchaContainer');
 
             // Basic bot detection before allowing pass
             if (isLinearMovement() || Date.now() - lastMouseMoveTime > 2000) {
-                status.textContent = '❌ Bot detected';
+                status.textContent = '❌ Bot detected. Please wait 2 seconds...';
+                canClick = false; // Disable clicking
+                setTimeout(() => {
+                    status.textContent = '⏳ Try again.';
+                    canClick = true; // Re-enable clicking after 2 seconds
+                }, 2000);
                 return;
             }
 
