@@ -81,7 +81,6 @@
         async function verifyCaptcha() {
             const box = document.getElementById('captchaBox');
             const status = document.getElementById('status');
-            const container = document.getElementById('captchaContainer');
 
             try {
                 const response = await fetch('https://captcha-yq5v.onrender.com/verify', {
@@ -95,17 +94,12 @@
                 if (data.verified) {
                     box.classList.add('checked');
                     status.textContent = '✅ Verified!';
-
-                    // Redirect back to original website after verification
+                    
                     setTimeout(() => {
                         const params = new URLSearchParams(window.location.search);
-                        const redirectUrl = params.get("redirect");
-
-                        if (redirectUrl) {
-                            window.location.href = redirectUrl + "?verified=true";
-                        } else {
-                            window.location.href = "https://portfolio-website-jet-delta-49.vercel.app/?verified=true";
-                        }
+                        const redirectUrl = params.get("redirect") || "https://portfolio-website-jet-delta-49.vercel.app";
+                        console.log("🔄 Redirecting back to:", redirectUrl);
+                        window.location.href = redirectUrl + "?verified=true";
                     }, 1000);
                 } else {
                     status.textContent = '❌ Bot detected!';
