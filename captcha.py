@@ -4,7 +4,9 @@ import numpy as np
 import os
 
 app = Flask(__name__)
-CORS(app, resources={r"/verify": {"origins": "https://your-vercel-frontend.vercel.app"}})  # Allow only your frontend
+
+# Allow all origins temporarily for debugging (change to specific frontend URL after testing)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Analyze mouse movements for bot detection
 def analyze_movements(movements):
@@ -56,10 +58,14 @@ def analyze_movements(movements):
         print(f"❌ Error in analysis: {e}")
         return False
 
-@app.route('/verify', methods=['POST'])  # Ensure POST is allowed
+# Verify CAPTCHA route
+@app.route('/verify', methods=['POST'])
 def verify():
+    print(f"📥 Received {request.method} request at /verify")  # Logs request method
+
     try:
         data = request.get_json()
+        print(f"📨 Received Data: {data}")  # Logs request data
 
         if not data or 'movements' not in data:
             return jsonify({"error": "No movement data provided"}), 400
@@ -73,6 +79,7 @@ def verify():
         print(f"❌ Error processing request: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
+# Run Flask app
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))  # Use Render-assigned port
     print(f"🚀 Server running on port {port}")
