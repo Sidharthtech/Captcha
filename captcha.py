@@ -6,13 +6,13 @@ import os
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# Allow only requests from your frontend (update with your actual domain)
-CORS(app, resources={r"/*": {"origins": "https://portfolio-website-jet-delta-49.vercel.app"}})
+# Allow requests from both frontend URLs
+CORS(app, resources={r"/*": {"origins": ["https://captcha-verification-beta.vercel.app", "https://portfolio-website-jet-delta-49.vercel.app"]}})
 
-# Default redirect URL (your portfolio website)
+# Default redirect URL
 DEFAULT_REDIRECT_URL = "https://portfolio-website-jet-delta-49.vercel.app"
 
-# Function to analyze mouse movement and detect bots
+# Mouse movement analysis function
 def analyze_movements(movements):
     if len(movements) < 10:
         print("❌ Not enough data to analyze.")
