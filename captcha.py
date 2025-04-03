@@ -69,7 +69,8 @@ def verify():
 
         if is_human:
             session['verified'] = True
-            return jsonify({"verified": True, "redirect": DEFAULT_REDIRECT_URL})
+            redirect_url = data.get('redirect', DEFAULT_REDIRECT_URL)
+            return jsonify({"verified": True, "redirect": redirect_url})
         else:
             return jsonify({"verified": False})
 
@@ -81,7 +82,7 @@ def verify():
 def handle_redirect():
     if session.get('verified'):
         session.pop('verified', None)  # Clear session
-        return redirect(DEFAULT_REDIRECT_URL)  # Redirect to portfolio
+        return redirect(DEFAULT_REDIRECT_URL + "?verified=true")  # Redirect with verification flag
     return "❌ Verification required.", 403
 
 if __name__ == '__main__':
