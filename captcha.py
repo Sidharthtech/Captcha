@@ -74,6 +74,6 @@ def verify():
         return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    print("🚀 Starting CAPTCHA verification server on port:", port)
+    port = int(os.environ.get('PORT', 10000))  # Use Render-assigned port
+    print(f"🚀 Server running on port {port}")
     app.run(host='0.0.0.0', port=port, debug=True)
