@@ -4,57 +4,57 @@ import numpy as np
 import os
 
 app = Flask(__name__)
-CORS(app)  # Allow requests from any origin (for Live Server compatibility)
+CORS(app, resources={r"/verify": {"origins": "https://your-vercel-frontend.vercel.app"}})  # Allow only your frontend
 
-# Function to analyze mouse movements and detect "bot-like" patterns
+# Analyze mouse movements for bot detection
 def analyze_movements(movements):
     if len(movements) < 10:
         print("❌ Not enough data to analyze.")
-        return False  # Not enough data for analysis
+        return False  # Too few movements
 
-    # Calculate distances, time intervals, and acceleration
-    distances = []
-    time_intervals = []
-    accelerations = []
+    try:
+        distances, time_intervals, accelerations = [], [], []
 
-    for i in range(1, len(movements)):
-        dx = movements[i]['x'] - movements[i - 1]['x']
-        dy = movements[i]['y'] - movements[i - 1]['y']
-        distance = np.sqrt(dx**2 + dy**2)
+        for i in range(1, len(movements)):
+            dx = movements[i]['x'] - movements[i - 1]['x']
+            dy = movements[i]['y'] - movements[i - 1]['y']
+            distance = np.sqrt(dx**2 + dy**2)
+            time_diff = movements[i]['time'] - movements[i - 1]['time']
 
-        time_diff = movements[i]['time'] - movements[i - 1]['time']
+            distances.append(distance)
+            time_intervals.append(time_diff)
 
-        distances.append(distance)
-        time_intervals.append(time_diff)
+            # Calculate acceleration
+            if i > 1 and time_diff > 0 and time_intervals[i - 2] > 0:
+                prev_speed = distances[i - 2] / time_intervals[i - 2]
+                current_speed = distance / time_diff
+                acceleration = abs(current_speed - prev_speed) / time_diff
+                accelerations.append(acceleration)
 
-        # Calculate acceleration (rate of change in speed)
-        if i > 1 and time_diff > 0:
-            prev_speed = distances[i - 2] / time_intervals[i - 2]
-            current_speed = distance / time_diff
-            acceleration = abs(current_speed - prev_speed) / time_diff
-            accelerations.append(acceleration)
+        # Ensure lists are not empty before computing stats
+        avg_distance = np.mean(distances) if distances else 0
+        std_distance = np.std(distances) if distances else 0
+        avg_time = np.mean(time_intervals) if time_intervals else 0
+        accel_variability = np.std(accelerations) if accelerations else 0
 
-    # Statistical checks to identify "bot-like" behavior
-    avg_distance = np.mean(distances)
-    std_distance = np.std(distances)
-    avg_time = np.mean(time_intervals)
-    accel_variability = np.std(accelerations) if accelerations else 0
+        print(f"👉 Avg Distance: {avg_distance:.4f}, Std Distance: {std_distance:.4f}")
+        print(f"👉 Avg Time: {avg_time:.4f}, Accel Variability: {accel_variability:.4f}")
 
-    print(f"👉 Avg Distance: {avg_distance:.4f}, Std Distance: {std_distance:.4f}")
-    print(f"👉 Avg Time: {avg_time:.4f}, Accel Variability: {accel_variability:.4f}")
+        # Detection Heuristics
+        if avg_distance < 1 or std_distance < 0.5 or avg_time < 5:
+            print("🚨 Bot detected: Uniform movement.")
+            return False
 
-    # Heuristic: Bots often show low variability in movement and timing
-    if avg_distance < 1 or std_distance < 0.5 or avg_time < 5:
-        print("🚨 Bot detected: Uniform movement.")
-        return False  # Likely a bot
+        if accel_variability < 0.01:
+            print("🚨 Bot detected: Low acceleration variability.")
+            return False
 
-    # Low acceleration variability suggests automated input
-    if accel_variability < 0.01:
-        print("🚨 Bot detected: Low acceleration variability.")
+        print("✅ Human detected.")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error in analysis: {e}")
         return False
-
-    print("✅ Human detected.")
-    return True  # Likely a human
 
 @app.route('/verify', methods=['POST'])
 def verify():
@@ -74,6 +74,6 @@ def verify():
         return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Use PORT from environment or default to 5000
+    port = int(os.environ.get('PORT', 5000))
     print("🚀 Starting CAPTCHA verification server on port:", port)
     app.run(host='0.0.0.0', port=port, debug=True)
