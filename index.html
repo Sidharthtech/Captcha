@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #0d0d0d;
+            padding: 20px;
+        }
+
+        .captcha-container {
+            text-align: center;
+            border: 2px solid #444;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(255, 0, 0, 0.8);
+            background: #1a1a1a;
+            width: 100%;
+            max-width: 600px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .captcha-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .captcha-logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .captcha-logo img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .captcha-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ff0000;
+            text-shadow: 0 0 8px #ff0000;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+
+        .captcha-bar {
+            display: block;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #888;
+            cursor: pointer;
+            margin-top: 20px;
+            border-radius: 8px;
+            transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        .captcha-bar.checked {
+            background: #00ff00;
+            box-shadow: 0 0 16px #00ff00;
+        }
+
+        .captcha-footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #ff4444;
+            transition: color 0.3s ease;
+        }
+
+        .captcha-container.checked .status {
+            color: #00ff00;
+        }
+
+        .captcha-container.checked {
+            box-shadow: 0 4px 12px rgba(0, 255, 0, 0.8);
+        }
+
+        .captcha-container.checked .captcha-title {
+            color: #00ff00;
+            text-shadow: 0 0 8px #00ff00;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="captcha-container" id="captchaContainer">
+        <div class="captcha-header">
+            <div class="captcha-logo">
+                <img src="https://www.gstatic.com/recaptcha/api2/logo_48.png" alt="reCAPTCHA">
+                <span class="captcha-title" id="captchaTitle">I'm not a robot</span>
+            </div>
+        </div>
+
+        <div>
+            <div class="captcha-bar" id="captchaBox" onclick="verifyCaptcha()"></div>
+        </div>
+
+        <p class="status" id="status">Not verified</p>
+
+        <div class="captcha-footer">
+            This site is protected by a CAPTCHA verification system.
+        </div>
+    </div>
+
+    <script>
+        let mouseMovements = [];
+        let lastMovement = null;
+        let lastMouseMoveTime = null;
+        let canClick = true;  // Controls when the user can click again
+
+        // Track mouse movements
+        document.addEventListener('mousemove', (event) => {
+            const current = { x: event.clientX, y: event.clientY, time: Date.now() };
+            if (lastMovement) {
+                current.dx = current.x - lastMovement.x;
+                current.dy = current.y - lastMovement.y;
+                current.dt = current.time - lastMovement.time;
+            }
+            lastMovement = current;
+            lastMouseMoveTime = Date.now();
+            mouseMovements.push(current);
+
+            // Keep only the last 500 movements
+            if (mouseMovements.length > 500) mouseMovements.shift();
+        });
+
+        // Calculate movement angles
+        function calculateAngle(m1, m2) {
+            const dot = m1.dx * m2.dx + m1.dy * m2.dy;
+            const mag1 = Math.sqrt(m1.dx ** 2 + m1.dy ** 2);
+            const mag2 = Math.sqrt(m2.dx ** 2 + m2.dy ** 2);
+            if (mag1 === 0 || mag2 === 0) return 0;
+            return Math.acos(dot / (mag1 * mag2)) * (180 / Math.PI);
+        }
+
+        // Check for linear movement (bot-like behavior)
+        function isLinearMovement() {
+            if (mouseMovements.length < 10) return false;
+
+            let smallAngleCount = 0;
+            for (let i = 2; i < mouseMovements.length; i++) {
+                const angle = calculateAngle(mouseMovements[i - 1], mouseMovements[i]);
+                if (angle < 15) smallAngleCount++;
+            }
+
+            return smallAngleCount / mouseMovements.length > 0.8;
+        }
+
+        // Simple CAPTCHA verification without backend
+        function verifyCaptcha() {
+            if (!canClick) return;  // Prevent clicking during wait period
+
+            const box = document.getElementById('captchaBox');
+            const status = document.getElementById('status');
+            const container = document.getElementById('captchaContainer');
+
+            // Basic bot detection before allowing pass
+            if (isLinearMovement() || Date.now() - lastMouseMoveTime > 2000) {
+                status.textContent = '❌ Bot detected. Please wait 2 seconds...';
+                canClick = false; // Disable clicking
+                setTimeout(() => {
+                    status.textContent = '⏳ Try again.';
+                    canClick = true; // Re-enable clicking after 2 seconds
+                }, 2000);
+                return;
+            }
+
+            // If the movement looks human, mark as verified
+            box.classList.add('checked');
+            container.classList.add('checked');
+            status.textContent = '✅ Verified!';
+        }
+    </script>
+
+</body>
+</html>
