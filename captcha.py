@@ -56,15 +56,15 @@ def analyze_movements(movements):
         print(f"❌ Error in analysis: {e}")
         return False
 
-@app.route('/verify', methods=['POST'])
+@app.route('/verify', methods=['POST'])  # Ensure POST is allowed
 def verify():
     try:
         data = request.get_json()
-        movements = data.get('movements', [])
 
-        if not movements:
+        if not data or 'movements' not in data:
             return jsonify({"error": "No movement data provided"}), 400
 
+        movements = data['movements']
         is_human = analyze_movements(movements)
 
         return jsonify({"verified": is_human})
