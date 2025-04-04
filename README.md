@@ -15,7 +15,6 @@ If the user is verified as human, they are allowed to proceed. If behavior is to
 
 ## ✨ Features
 
-- ⚡ Real-time bot detection using only frontend JavaScript
 - 🔍 Detects linear mouse movement as bot-like behavior
 - ⏱️ Temporarily disables verification if movement seems automated
 - 🧠 No need for backend or third-party CAPTCHA providers
